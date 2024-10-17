@@ -23,12 +23,21 @@ namespace MonoProfiler
 
         public static FileInfo RunProfilerDump()
         {
-            if (_dumpFunction == null) throw new InvalidOperationException("Tried to trigger a profiler info dump before profiler was initialized");
+            if (_dumpFunction == null)
+            {
+                System.Console.WriteLine($"no profiler initialized");
+                throw new InvalidOperationException("Tried to trigger a profiler info dump before profiler was initialized");
+            }
 
-            _dumpFunction();
+            string dumpPath = Path.Combine(Paths.GameRootPath, ProfilerOutputFilename);
+            _dumpFunction(dumpPath);
 
-            var dump = new FileInfo(Path.Combine(Paths.GameRootPath, ProfilerOutputFilename));
-            if (!dump.Exists) throw new FileNotFoundException("Could not find the profiler dump file in " + dump.FullName);
+            var dump = new FileInfo(dumpPath);
+            if (!dump.Exists)
+            {
+                System.Console.WriteLine($"failed to create dump for some reason");
+                throw new FileNotFoundException("Could not find the profiler dump file in " + dump.FullName);
+            }
             return dump;
         }
 
@@ -52,9 +61,9 @@ namespace MonoProfiler
                     _logger.LogError("Failed to find the Mono module in current process");
                     return;
                 }
-                System.Console.WriteLine($"  [!] got mono module {monoModule.FileName}");
+                // System.Console.WriteLine($"  [!] got mono module {monoModule.FileName}");
 
-                System.Console.WriteLine($"  [!] looking for profiler");
+                // System.Console.WriteLine($"  [!] looking for profiler");
                 // Load profiler lib, it checks for the dll in the game root next to the .exe first
                 var profilerPath = Path.GetFullPath(Path.Combine(Paths.GameRootPath, "MonoProfiler64.so"));
                 // var profilerPath = Path.GetFullPath(Path.Combine(Paths.GameRootPath, Is64BitProcess ? "MonoProfiler64.dll" : "MonoProfiler32.dll"));
@@ -64,29 +73,29 @@ namespace MonoProfiler
                     return;
                 }
                 // var profilerPtr = LoadLibrary(profilerPath);
-                System.Console.WriteLine($"  [!] opening profiler");
+                // System.Console.WriteLine($"  [!] opening profiler");
                 IntPtr profilerPtr = dlopen(profilerPath, RTLD_NOW);
                 if (profilerPtr == IntPtr.Zero)
                 {
                     _logger.LogError($"Failed to load {profilerPath}, verify that the file exists and is not corrupted");
                     return;
                 }
-                System.Console.WriteLine($"  [!] got profiler {profilerPtr}");
+                // System.Console.WriteLine($"  [!] got profiler {profilerPtr}");
 
                 // Subscribe the profiler in mono
                 // var addProfilerPtr = GetProcAddress(profilerPtr, "AddProfiler");
-                System.Console.WriteLine($"  [!] loading AddProfiler() method");
+                // System.Console.WriteLine($"  [!] loading AddProfiler() method");
                 IntPtr addProfilerPtr = dlsym(profilerPtr, "AddProfiler");
                 if (addProfilerPtr == IntPtr.Zero)
                 {
                     _logger.LogError("Failed to find function AddProfiler in MonoProfiler.dll");
                     return;
                 }
-                System.Console.WriteLine($"  [!] marshalling AddProfiler() method at {addProfilerPtr}");
+                // System.Console.WriteLine($"  [!] marshalling AddProfiler() method at {addProfilerPtr}");
                 var addProfiler = (AddProfilerDelegate)Marshal.GetDelegateForFunctionPointer(addProfilerPtr, typeof(AddProfilerDelegate));
-                System.Console.WriteLine($"  [!] calling AddProfiler() method");
-                addProfiler(monoModule.BaseAddress);
-                System.Console.WriteLine($"  [!] done with AddProfiler() method");
+                // System.Console.WriteLine($"  [!] calling AddProfiler() method");
+                addProfiler(monoModule.FileName);
+                // System.Console.WriteLine($"  [!] done with AddProfiler() method");
 
                 // Prepare callback used to trigger a dump of collected profiler info
                 // var dumpPtr = GetProcAddress(profilerPtr, "Dump");
@@ -125,10 +134,9 @@ namespace MonoProfiler
         [DllImport("/usr/lib/libdl.so.2" /*"libdl.so"*/)]
         private static extern IntPtr dlsym(IntPtr handle, string symbol);
 
-        // const int RTLD_LAZY = 1; // for dlopen's flags
         const int RTLD_NOW = 2; // for dlopen's flags
 
-        private delegate void AddProfilerDelegate(IntPtr mono);
-        private delegate void Dump();
+        private delegate void AddProfilerDelegate(string libmonoPath);
+        private delegate void Dump(string filepath);
     }
 }

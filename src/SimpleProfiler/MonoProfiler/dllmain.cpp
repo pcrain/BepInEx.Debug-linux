@@ -152,7 +152,7 @@ struct ThreadProfilerInfo
 		uint64_t total_allocation;
 	};
 
-	static void dump()
+	static void dump(const char* filepath)
 	{
 		std::vector<Row> rows;
 		{
@@ -175,12 +175,11 @@ struct ThreadProfilerInfo
 
 		std::ofstream fs;
 
-		fs.open("MonoProfilerOutput.csv", std::fstream::out | std::fstream::trunc);
-
+		fs.open(filepath, std::fstream::out | std::fstream::trunc);
 
 		//Sort by time
 		sort(rows.begin(), rows.end(), [=](auto& a, auto& b) {
-			return a.total_runtime > b.total_runtime;
+			return a.self_runtime > b.self_runtime;
 		});
 
 		fs << "\"Thread\",\"Call count\",\"Method name\",\"Total runtime (ns)\",\"Self runtime (ns)\",\"Total allocation (bytes)\"" << std::endl;
@@ -230,27 +229,27 @@ static void method_leave(void* prof, void* method)
 // 	thread_profiler_info = nullptr;
 // }
 
-extern "C" void DLL_PUBLIC AddProfiler(HMODULE mono)
+extern "C" void DLL_PUBLIC AddProfiler(const char* libmonoPath)
 {
 	std::cout << "[C++] calling AddProfiler()" << std::endl;
 
-	std::cout << "[C++] initializing mono funcs with mono " << mono << std::endl;
-	init_mono_funcs(mono);
+	std::cout << "[C++] initializing mono funcs with mono at " << libmonoPath << std::endl;
+	init_mono_funcs(libmonoPath);
 
 	//Install profiler, shutdown doesn't fire so do this manually on DLL_PROCESS_DETACH
 	//prof = new MonoProfiler();
-	std::cout << "[C++] installing profiler" << std::endl;
+	std::cout << "[C++]   installing profiler" << std::endl;
 	mono_profiler_install(NULL, NULL);
-	std::cout << "[C++] installing enter leave" << std::endl;
+	std::cout << "[C++]   installing enter leave" << std::endl;
 	mono_profiler_install_enter_leave(method_enter, method_leave);
-	std::cout << "[C++] installing events" << std::endl;
+	std::cout << "[C++]   installing events" << std::endl;
 	mono_profiler_set_events(MONO_PROFILE_ENTER_LEAVE);
-	std::cout << "[C++] AddProfiler() complete" << std::endl;
+	std::cout << "[C++]   AddProfiler() complete" << std::endl;
 }
 
-extern "C" void DLL_PUBLIC Dump()
+extern "C" void DLL_PUBLIC Dump(const char* filepath)
 {
-	ThreadProfilerInfo::dump();
+	ThreadProfilerInfo::dump(filepath);
 }
 
 int main()

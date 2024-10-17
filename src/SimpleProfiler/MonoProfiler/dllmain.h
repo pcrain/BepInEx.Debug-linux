@@ -133,18 +133,12 @@ MONO_FUN(mono_profiler_set_events, void, MonoProfileFlags events);
 MONO_FUN(mono_profiler_install_enter_leave, void, MonoProfileMethodFunc enter, MonoProfileMethodFunc fleave);
 MONO_FUN(mono_gc_get_used_size, uint64_t);
 
-inline void init_mono_funcs(HMODULE mono)
+inline void init_mono_funcs(const char* libmonoPath)
 {
-	const char* libmonoPath = "/xmedia/pretzel/Steam/steamapps/common/Enter the Gungeon/EtG_Data/Mono/x86_64/libmono.so";
 	HANDLE libmonoHandle = dlopen(libmonoPath, 2);
 
 // #define GET_FUN(name) name = reinterpret_cast<name##_t>(GetProcAddress(mono, #name));
-// #define GET_FUN(name) name = reinterpret_cast<name##_t>(dlsym(mono, #name));
 #define GET_FUN(name) name = reinterpret_cast<name##_t>(dlsym(libmonoHandle, #name));
-	// std::cout << "  [c++] looking up mono_gc_get_used_size symbol" << std::endl;
-	// dlsym(mono, "mono_gc_get_used_size");
-	// void* funcPtr = dlsym(libmonoHandle, "mono_gc_get_used_size");
-	// std::cout << "    found " << funcPtr << " " << " " << &funcPtr << std::endl;
 
 	std::cout << "  [c++] creating mono function mono_method_full_name" << std::endl;
 	GET_FUN(mono_method_full_name);
@@ -158,7 +152,6 @@ inline void init_mono_funcs(HMODULE mono)
 	GET_FUN(mono_thread_current);
 	std::cout << "  [c++] creating mono function mono_gc_get_used_size" << std::endl;
 	GET_FUN(mono_gc_get_used_size);
-
 	std::cout << "  [c++] mono function set up complete" << std::endl;
 
 #undef GET_FUN

@@ -1,19 +1,8 @@
 RM := rm -rf
 MKDIR_P = mkdir -p
-
 NOWARN := -Wno-unused-variable -Wno-format-truncation
-
-OBJS += \
-build/dllmain.o
-
-CPP_DEPS += \
-build/dllmain.d
-
-# LIBS := -ljsoncpp -lncurses -lnotify -lgtk-3 -lglib-2.0 -lgobject-2.0 -ltinfo
-
-# INCLUDES = \
-# 	-I/usr/include/gtk-3.0
-
+OBJS += build/dllmain.o
+CPP_DEPS += build/dllmain.d
 BUILD_DIR = build
 
 all: directories MonoProfiler64
@@ -33,7 +22,7 @@ build/%.o: ./%.cpp
 	@echo ' '
 
 clean:
-	-$(RM) $(OBJS)$(C++_DEPS) ./MonoProfiler
+	-$(RM) $(OBJS)$(C++_DEPS) ./MonoProfiler64.so
 	-@echo ' '
 
 directories: ${BUILD_DIR}
