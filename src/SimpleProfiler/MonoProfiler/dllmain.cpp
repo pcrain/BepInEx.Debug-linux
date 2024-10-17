@@ -208,6 +208,7 @@ static thread_local ThreadProfilerInfo* thread_profiler_info;
 
 static void method_enter(void* prof, void* method)
 {
+	// std::cout << "entered a method" << std::endl;
 	if (!thread_profiler_info)
 	{
 		thread_profiler_info = new ThreadProfilerInfo();
@@ -231,14 +232,20 @@ static void method_leave(void* prof, void* method)
 
 extern "C" void DLL_PUBLIC AddProfiler(HMODULE mono)
 {
-	std::cout << "[C++] called AddProfiler()" << std::endl;
+	std::cout << "[C++] calling AddProfiler()" << std::endl;
+
+	std::cout << "[C++] initializing mono funcs with mono " << mono << std::endl;
 	init_mono_funcs(mono);
 
 	//Install profiler, shutdown doesn't fire so do this manually on DLL_PROCESS_DETACH
 	//prof = new MonoProfiler();
+	std::cout << "[C++] installing profiler" << std::endl;
 	mono_profiler_install(NULL, NULL);
+	std::cout << "[C++] installing enter leave" << std::endl;
 	mono_profiler_install_enter_leave(method_enter, method_leave);
+	std::cout << "[C++] installing events" << std::endl;
 	mono_profiler_set_events(MONO_PROFILE_ENTER_LEAVE);
+	std::cout << "[C++] AddProfiler() complete" << std::endl;
 }
 
 extern "C" void DLL_PUBLIC Dump()

@@ -40,12 +40,19 @@ namespace MonoProfiler
             try
             {
                 // Find address of the mono module
-                var monoModule = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().FirstOrDefault(module => module.ModuleName.Contains("mono"));
+                // var monoModules = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Where(module => module.ModuleName.Contains("mono"));
+                // foreach (ProcessModule module in monoModules)
+                // {
+                //     System.Console.WriteLine($"    found module {module.FileName} == {module.ModuleName}");
+                // }
+                // ProcessModule monoModule = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().FirstOrDefault(module => module.ModuleName.Contains("libmonosgen"));
+                ProcessModule monoModule = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().FirstOrDefault(module => module.ModuleName.Contains("libmono.so"));
                 if (monoModule == null)
                 {
                     _logger.LogError("Failed to find the Mono module in current process");
                     return;
                 }
+                System.Console.WriteLine($"  [!] got mono module {monoModule.FileName}");
 
                 System.Console.WriteLine($"  [!] looking for profiler");
                 // Load profiler lib, it checks for the dll in the game root next to the .exe first
@@ -118,6 +125,7 @@ namespace MonoProfiler
         [DllImport("/usr/lib/libdl.so.2" /*"libdl.so"*/)]
         private static extern IntPtr dlsym(IntPtr handle, string symbol);
 
+        // const int RTLD_LAZY = 1; // for dlopen's flags
         const int RTLD_NOW = 2; // for dlopen's flags
 
         private delegate void AddProfilerDelegate(IntPtr mono);

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <map>
 #include <fstream>
+#include <iostream>
 #include <time.h>
 // #include <Windows.h> // Windows Platform SDK
 
@@ -31,11 +32,12 @@ typedef unsigned long gsize;
 // linux fixes
 typedef void* HANDLE;
 typedef HANDLE HMODULE;
+typedef void* CRITICAL_SECTION; // unsure about this one, unsure if void** is appropriate
 
 struct _MonoThread {
 	MonoObject  obj;
 	int         lock_thread_id; /* to be used as the pre-shifted thread id in thin locks */
-	/*HANDLE*/ int	    handle;
+	HANDLE	    handle;
 	void* cached_culture_info;
 	gpointer    unused1;
 	MonoBoolean threadpool_thread;
@@ -59,7 +61,7 @@ struct _MonoThread {
 	gpointer suspend_event;
 	gpointer suspended_event;
 	gpointer resume_event;
-	/*CRITICAL_SECTION**/ void* synch_cs;
+	CRITICAL_SECTION* synch_cs;
 	guint8* serialized_culture_info;
 	guint32 serialized_culture_info_len;
 	guint8* serialized_ui_culture_info;
@@ -133,15 +135,31 @@ MONO_FUN(mono_gc_get_used_size, uint64_t);
 
 inline void init_mono_funcs(HMODULE mono)
 {
-// #define GET_FUN(name) name = reinterpret_cast<name##_t>(GetProcAddress(mono, #name));
-#define GET_FUN(name) name = reinterpret_cast<name##_t>(dlsym(mono, #name));
+	const char* libmonoPath = "/xmedia/pretzel/Steam/steamapps/common/Enter the Gungeon/EtG_Data/Mono/x86_64/libmono.so";
+	HANDLE libmonoHandle = dlopen(libmonoPath, 2);
 
+// #define GET_FUN(name) name = reinterpret_cast<name##_t>(GetProcAddress(mono, #name));
+// #define GET_FUN(name) name = reinterpret_cast<name##_t>(dlsym(mono, #name));
+#define GET_FUN(name) name = reinterpret_cast<name##_t>(dlsym(libmonoHandle, #name));
+	// std::cout << "  [c++] looking up mono_gc_get_used_size symbol" << std::endl;
+	// dlsym(mono, "mono_gc_get_used_size");
+	// void* funcPtr = dlsym(libmonoHandle, "mono_gc_get_used_size");
+	// std::cout << "    found " << funcPtr << " " << " " << &funcPtr << std::endl;
+
+	std::cout << "  [c++] creating mono function mono_method_full_name" << std::endl;
 	GET_FUN(mono_method_full_name);
+	std::cout << "  [c++] creating mono function mono_profiler_install" << std::endl;
 	GET_FUN(mono_profiler_install);
+	std::cout << "  [c++] creating mono function mono_profiler_set_events" << std::endl;
 	GET_FUN(mono_profiler_set_events);
+	std::cout << "  [c++] creating mono function mono_profiler_install_enter_leave" << std::endl;
 	GET_FUN(mono_profiler_install_enter_leave);
+	std::cout << "  [c++] creating mono function mono_thread_current" << std::endl;
 	GET_FUN(mono_thread_current);
+	std::cout << "  [c++] creating mono function mono_gc_get_used_size" << std::endl;
 	GET_FUN(mono_gc_get_used_size);
+
+	std::cout << "  [c++] mono function set up complete" << std::endl;
 
 #undef GET_FUN
 }
