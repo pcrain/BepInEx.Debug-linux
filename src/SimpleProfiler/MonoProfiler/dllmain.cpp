@@ -207,7 +207,6 @@ static thread_local ThreadProfilerInfo* thread_profiler_info;
 
 static void method_enter(void* prof, void* method)
 {
-	// std::cout << "entered a method" << std::endl;
 	if (!thread_profiler_info)
 	{
 		thread_profiler_info = new ThreadProfilerInfo();

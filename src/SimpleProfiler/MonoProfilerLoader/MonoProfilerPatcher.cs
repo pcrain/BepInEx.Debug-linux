@@ -13,6 +13,7 @@ namespace MonoProfiler
     public static class MonoProfilerPatcher
     {
         private const string ProfilerOutputFilename = "MonoProfilerOutput.csv";
+        private static AddProfilerDelegate _addProfilerFunction;
         private static Dump _dumpFunction;
         private static ManualLogSource _logger;
 
@@ -20,6 +21,11 @@ namespace MonoProfiler
 
         private static bool Is64BitProcess => IntPtr.Size == 8;
         public static bool IsInitialized => _dumpFunction != null;
+
+        public static void StartProfiler(string libmonoFilename)
+        {
+            _addProfilerFunction(libmonoFilename);
+        }
 
         public static FileInfo RunProfilerDump()
         {
@@ -92,9 +98,10 @@ namespace MonoProfiler
                     return;
                 }
                 // System.Console.WriteLine($"  [!] marshalling AddProfiler() method at {addProfilerPtr}");
-                var addProfiler = (AddProfilerDelegate)Marshal.GetDelegateForFunctionPointer(addProfilerPtr, typeof(AddProfilerDelegate));
+                _addProfilerFunction = (AddProfilerDelegate)Marshal.GetDelegateForFunctionPointer(addProfilerPtr, typeof(AddProfilerDelegate));
                 // System.Console.WriteLine($"  [!] calling AddProfiler() method");
-                addProfiler(monoModule.FileName);
+                // NOTE: can't call _addProfilerFunction here or the profiler just gets nuked once prepatching is done
+                // _addProfilerFunction(monoModule.FileName);
                 // System.Console.WriteLine($"  [!] done with AddProfiler() method");
 
                 // Prepare callback used to trigger a dump of collected profiler info

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using Common;
@@ -17,13 +19,18 @@ namespace MonoProfiler
 
         private void Awake()
         {
-            System.Console.WriteLine($"[C#] Initializing MonoProfilerController");
+            System.Console.WriteLine($"Initializing MonoProfilerController");
             if (!MonoProfilerPatcher.IsInitialized)
             {
                 enabled = false;
                 Logger.LogWarning("MonoProfiler was not initialized, can't proceed! Make sure that all profiler dlls are in the correct directories.");
                 return;
             }
+
+            System.Console.WriteLine($"Starting Profiler");
+            ProcessModule monoModule = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().FirstOrDefault(module => module.ModuleName.Contains("libmono.so"));
+            MonoProfilerPatcher.StartProfiler(monoModule.FileName);
+            System.Console.WriteLine($"Profiler started!");
 
             _key = Config.Bind("Capture", "Dump collected data", new KeyboardShortcut(KeyCode.F6), "Key used to dump all information to a file. Only includes information that was captured since the last time a dump was triggered.");
         }
