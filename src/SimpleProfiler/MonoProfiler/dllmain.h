@@ -4,12 +4,15 @@
 #include <map>
 #include <fstream>
 #include <time.h>
-#include <Windows.h> // Windows Platform SDK
+// #include <Windows.h> // Windows Platform SDK
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <dlfcn.h>
 
 #define MONO_FUN(name, ret, ...) \
 	typedef ret (*name##_t)(__VA_ARGS__); \
 	static name##_t name;
-
 
 typedef struct {
 	void* vtable;
@@ -18,17 +21,21 @@ typedef struct {
 
 typedef char MonoBoolean;
 typedef void* gpointer;
-typedef unsigned __int16	gunichar2;
-typedef unsigned __int8		guint8;
-typedef unsigned __int32	guint32;
-typedef __int32				gint32;
-typedef unsigned __int64	guint64;
+typedef uint16_t	gunichar2;
+typedef uint8_t		guint8;
+typedef uint32_t	guint32;
+typedef int32_t				gint32;
+typedef uint64_t	guint64;
 typedef unsigned long gsize;
+
+// linux fixes
+typedef void* HANDLE;
+typedef HANDLE HMODULE;
 
 struct _MonoThread {
 	MonoObject  obj;
 	int         lock_thread_id; /* to be used as the pre-shifted thread id in thin locks */
-	HANDLE	    handle;
+	/*HANDLE*/ int	    handle;
 	void* cached_culture_info;
 	gpointer    unused1;
 	MonoBoolean threadpool_thread;
@@ -52,7 +59,7 @@ struct _MonoThread {
 	gpointer suspend_event;
 	gpointer suspended_event;
 	gpointer resume_event;
-	CRITICAL_SECTION* synch_cs;
+	/*CRITICAL_SECTION**/ void* synch_cs;
 	guint8* serialized_culture_info;
 	guint32 serialized_culture_info_len;
 	guint8* serialized_ui_culture_info;
@@ -126,7 +133,8 @@ MONO_FUN(mono_gc_get_used_size, uint64_t);
 
 inline void init_mono_funcs(HMODULE mono)
 {
-#define GET_FUN(name) name = reinterpret_cast<name##_t>(GetProcAddress(mono, #name));
+// #define GET_FUN(name) name = reinterpret_cast<name##_t>(GetProcAddress(mono, #name));
+#define GET_FUN(name) name = reinterpret_cast<name##_t>(dlsym(mono, #name));
 
 	GET_FUN(mono_method_full_name);
 	GET_FUN(mono_profiler_install);

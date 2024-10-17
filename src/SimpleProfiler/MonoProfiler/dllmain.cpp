@@ -1,5 +1,5 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
-#include "pch.h"
+// #include "pch.h"
 #include "dllmain.h"
 
 #include <set>
@@ -7,8 +7,36 @@
 #include <vector>
 #include <functional>
 #include <mutex>
+#include <iostream>
+#include <unordered_map>
 
 using namespace std::chrono;
+
+// https://gcc.gnu.org/wiki/Visibility
+#if defined _WIN32 || defined __CYGWIN__
+  #ifdef BUILDING_DLL
+    #ifdef __GNUC__
+      #define DLL_PUBLIC __attribute__ ((dllexport))
+    #else
+      #define DLL_PUBLIC __declspec(dllexport) // Note: actually gcc seems to also supports this syntax.
+    #endif
+  #else
+    #ifdef __GNUC__
+      #define DLL_PUBLIC __attribute__ ((dllimport))
+    #else
+      #define DLL_PUBLIC __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
+    #endif
+  #endif
+  #define DLL_LOCAL
+#else
+  #if __GNUC__ >= 4
+    #define DLL_PUBLIC __attribute__ ((visibility ("default")))
+    #define DLL_LOCAL  __attribute__ ((visibility ("hidden")))
+  #else
+    #define DLL_PUBLIC
+    #define DLL_LOCAL
+  #endif
+#endif
 
 struct MethodStats
 {
@@ -173,10 +201,10 @@ std::set<ThreadProfilerInfo*> ThreadProfilerInfo::all_instances;
 
 static thread_local ThreadProfilerInfo* thread_profiler_info;
 
-static void shutdown(void* prof)
-{
-	//dump();
-}
+// static void shutdown(void* prof)
+// {
+// 	//dump();
+// }
 
 static void method_enter(void* prof, void* method)
 {
@@ -194,15 +222,16 @@ static void method_leave(void* prof, void* method)
 		thread_profiler_info->leave_method(method);
 }
 
-static void thread_detach()
-{
-	if (thread_profiler_info)
-		delete thread_profiler_info;
-	thread_profiler_info = nullptr;
-}
+// static void thread_detach()
+// {
+// 	if (thread_profiler_info)
+// 		delete thread_profiler_info;
+// 	thread_profiler_info = nullptr;
+// }
 
-extern "C" void __declspec(dllexport) AddProfiler(HMODULE mono)
+extern "C" void DLL_PUBLIC AddProfiler(HMODULE mono)
 {
+	std::cout << "[C++] called AddProfiler()" << std::endl;
 	init_mono_funcs(mono);
 
 	//Install profiler, shutdown doesn't fire so do this manually on DLL_PROCESS_DETACH
@@ -212,17 +241,24 @@ extern "C" void __declspec(dllexport) AddProfiler(HMODULE mono)
 	mono_profiler_set_events(MONO_PROFILE_ENTER_LEAVE);
 }
 
-extern "C" void __declspec(dllexport) Dump()
+extern "C" void DLL_PUBLIC Dump()
 {
 	ThreadProfilerInfo::dump();
 }
 
-
-BOOL WINAPI DllMain(HINSTANCE /* hInstDll */, DWORD reasonForDllLoad, LPVOID /* reserved */)
+int main()
 {
-	if (reasonForDllLoad == DLL_PROCESS_DETACH)
-		shutdown(NULL);
-	else if (reasonForDllLoad == DLL_THREAD_DETACH)
-		thread_detach();
-	return TRUE;
+	return 0;
 }
+
+// https://stackoverflow.com/questions/12463718/linux-equivalent-of-dllmain
+// __attribute__((constructor))
+
+// BOOL WINAPI DllMain(HINSTANCE /* hInstDll */, DWORD reasonForDllLoad, LPVOID /* reserved */)
+// {
+// 	if (reasonForDllLoad == DLL_PROCESS_DETACH)
+// 		shutdown(NULL);
+// 	else if (reasonForDllLoad == DLL_THREAD_DETACH)
+// 		thread_detach();
+// 	return TRUE;
+// }
