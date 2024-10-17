@@ -9,15 +9,13 @@ all: directories MonoProfiler64
 
 MonoProfiler64: $(OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: GCC C++ Linker'
 	g++ -rdynamic -L/usr/lib -std=c++17 -o "./MonoProfiler64.so" $(OBJS) $(LIBS) -ldl -shared
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 build/%.o: ./%.cpp
 	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C++ Compiler'
-	g++ -rdynamic -D__GXX_EXPERIMENTAL_CXX0X__ $(INCLUDES) -O3 -g3 -Wall -c -fmessage-length=0 -std=c++17 $(NOWARN)  -fPIC -o "$@" "$<" -ldl
+	g++ -rdynamic $(INCLUDES) -O3 -g3 -Wall -c -fmessage-length=0 -std=c++17 $(NOWARN) -fPIC -o "$@" "$<" -ldl
 	@echo 'Finished building: $<'
 	@echo ' '
 
